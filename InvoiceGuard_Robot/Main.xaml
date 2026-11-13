@@ -1,0 +1,223 @@
+<Activity mc:Ignorable="sap sap2010" x:Class="Main"
+ xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities"
+ xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+ xmlns:s="clr-namespace:System;assembly=System.Private.CoreLib"
+ xmlns:sap="http://schemas.microsoft.com/netfx/2009/xaml/activities/presentation"
+ xmlns:sap2010="http://schemas.microsoft.com/netfx/2010/xaml/activities/presentation"
+ xmlns:scg="clr-namespace:System.Collections.Generic;assembly=System.Private.CoreLib"
+ xmlns:sco="clr-namespace:System.Collections.ObjectModel;assembly=System.Private.CoreLib"
+ xmlns:sd="clr-namespace:System.Data;assembly=System.Data.Common"
+ xmlns:ui="http://schemas.uipath.com/workflow/activities"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <TextExpression.NamespacesForImplementation>
+    <sco:Collection x:TypeArguments="x:String">
+      <x:String>System</x:String>
+      <x:String>System.Collections.Generic</x:String>
+      <x:String>System.Data</x:String>
+      <x:String>System.IO</x:String>
+      <x:String>System.Linq</x:String>
+      <x:String>System.Text.RegularExpressions</x:String>
+      <x:String>System.Globalization</x:String>
+      <x:String>Microsoft.VisualBasic</x:String>
+      <x:String>System.Activities</x:String>
+      <x:String>UiPath.Core</x:String>
+      <x:String>UiPath.Core.Activities</x:String>
+      <x:String>UiPath.Excel</x:String>
+      <x:String>UiPath.Excel.Activities</x:String>
+      <x:String>UiPath.PDF.Activities</x:String>
+    </sco:Collection>
+  </TextExpression.NamespacesForImplementation>
+  <TextExpression.ReferencesForImplementation>
+    <sco:Collection x:TypeArguments="AssemblyReference">
+      <AssemblyReference>Microsoft.VisualBasic</AssemblyReference>
+      <AssemblyReference>System</AssemblyReference>
+      <AssemblyReference>System.Activities</AssemblyReference>
+      <AssemblyReference>System.Private.CoreLib</AssemblyReference>
+      <AssemblyReference>System.Data</AssemblyReference>
+      <AssemblyReference>System.Data.Common</AssemblyReference>
+      <AssemblyReference>System.Linq</AssemblyReference>
+      <AssemblyReference>System.Collections</AssemblyReference>
+      <AssemblyReference>System.Text.RegularExpressions</AssemblyReference>
+      <AssemblyReference>System.ComponentModel.TypeConverter</AssemblyReference>
+      <AssemblyReference>System.Runtime</AssemblyReference>
+      <AssemblyReference>UiPath.System.Activities</AssemblyReference>
+      <AssemblyReference>UiPath.UiAutomation.Activities</AssemblyReference>
+      <AssemblyReference>UiPath.Excel.Activities</AssemblyReference>
+      <AssemblyReference>UiPath.PDF.Activities</AssemblyReference>
+    </sco:Collection>
+  </TextExpression.ReferencesForImplementation>
+  <Sequence DisplayName="InvoiceGuard - Verifikasi Invoice dengan Persetujuan Manusia" sap2010:Annotation.AnnotationText="InvoiceGuard: robot membaca invoice PDF, mencocokkan dengan Master PO, lalu meminta keputusan staf keuangan untuk invoice yang bermasalah (Human in the Lead). Hasil akhir berupa laporan Excel.">
+    <Sequence.Variables>
+<Variable x:TypeArguments="x:String" Name="strDataFolder" Default="C:\Users\monik\Documents\InvoiceGuard\Data" />
+<Variable x:TypeArguments="x:String" Name="strInvoiceFolder" />
+<Variable x:TypeArguments="x:String" Name="strPOFile" />
+<Variable x:TypeArguments="x:String" Name="strProcessedFolder" />
+<Variable x:TypeArguments="x:String" Name="strReportFile" />
+<Variable x:TypeArguments="sd:DataTable" Name="dtPO" />
+<Variable x:TypeArguments="sd:DataTable" Name="dtLog" />
+<Variable x:TypeArguments="scg:List(x:String)" Name="listSeenInvoices" />
+<Variable x:TypeArguments="s:DateTime" Name="dtMulai" />
+<Variable x:TypeArguments="x:String" Name="strText" />
+<Variable x:TypeArguments="x:String" Name="strNoInvoice" />
+<Variable x:TypeArguments="x:String" Name="strPO" />
+<Variable x:TypeArguments="x:String" Name="strVendor" />
+<Variable x:TypeArguments="x:Decimal" Name="decTotalInvoice" />
+<Variable x:TypeArguments="x:Decimal" Name="decTotalPO" />
+<Variable x:TypeArguments="x:String" Name="strStatus" />
+<Variable x:TypeArguments="x:String" Name="strReason" />
+<Variable x:TypeArguments="x:String" Name="strDecision" />
+<Variable x:TypeArguments="x:String" Name="strNote" />
+<Variable x:TypeArguments="x:String" Name="strSummary" />
+    </Sequence.Variables>
+
+    <Sequence DisplayName="1. Inisialisasi" sap2010:Annotation.AnnotationText="Menyiapkan lokasi folder, waktu mulai, dan file laporan. Ubah strDataFolder jika lokasi data berbeda.">
+      <ui:LogMessage DisplayName="Log - Robot mulai" Level="Info">
+  <ui:LogMessage.Message><InArgument x:TypeArguments="x:Object">["InvoiceGuard mulai bekerja"]</InArgument></ui:LogMessage.Message>
+</ui:LogMessage>
+      <Assign DisplayName="Catat waktu mulai">
+  <Assign.To><OutArgument x:TypeArguments="s:DateTime">[dtMulai]</OutArgument></Assign.To>
+  <Assign.Value><InArgument x:TypeArguments="s:DateTime">[Now]</InArgument></Assign.Value>
+</Assign>
+      <Assign DisplayName="Folder invoice masuk">
+  <Assign.To><OutArgument x:TypeArguments="x:String">[strInvoiceFolder]</OutArgument></Assign.To>
+  <Assign.Value><InArgument x:TypeArguments="x:String">[System.IO.Path.Combine(strDataFolder, "Invoice_Masuk")]</InArgument></Assign.Value>
+</Assign>
+      <Assign DisplayName="File Master PO">
+  <Assign.To><OutArgument x:TypeArguments="x:String">[strPOFile]</OutArgument></Assign.To>
+  <Assign.Value><InArgument x:TypeArguments="x:String">[System.IO.Path.Combine(strDataFolder, "Master_PO.xlsx")]</InArgument></Assign.Value>
+</Assign>
+      <Assign DisplayName="Folder arsip invoice">
+  <Assign.To><OutArgument x:TypeArguments="x:String">[strProcessedFolder]</OutArgument></Assign.To>
+  <Assign.Value><InArgument x:TypeArguments="x:String">[System.IO.Path.Combine(strDataFolder, "Sudah_Diproses")]</InArgument></Assign.Value>
+</Assign>
+      <Assign DisplayName="Nama file laporan">
+  <Assign.To><OutArgument x:TypeArguments="x:String">[strReportFile]</OutArgument></Assign.To>
+  <Assign.Value><InArgument x:TypeArguments="x:String">[System.IO.Path.Combine(strDataFolder, "Laporan_Verifikasi_" &amp; Now.ToString("yyyyMMdd_HHmmss") &amp; ".xlsx")]</InArgument></Assign.Value>
+</Assign>
+      <Assign DisplayName="Daftar invoice yang sudah diproses" sap2010:Annotation.AnnotationText="Dipakai untuk mendeteksi invoice duplikat.">
+  <Assign.To><OutArgument x:TypeArguments="scg:List(x:String)">[listSeenInvoices]</OutArgument></Assign.To>
+  <Assign.Value><InArgument x:TypeArguments="scg:List(x:String)">[New List(Of String)]</InArgument></Assign.Value>
+</Assign>
+      <ui:InvokeCode DisplayName="Siapkan tabel hasil &amp; folder arsip" Language="VBNet" Code="out_dtLog = New System.Data.DataTable(&quot;Hasil_Verifikasi&quot;)&#xA;For Each c As String In New String() {&quot;Waktu_Proses&quot;, &quot;File&quot;, &quot;No_Invoice&quot;, &quot;PO_Number&quot;, &quot;Vendor_Invoice&quot;, &quot;Total_Invoice&quot;, &quot;Total_PO&quot;, &quot;Selisih&quot;, &quot;Status_Robot&quot;, &quot;Alasan&quot;, &quot;Keputusan_Manusia&quot;, &quot;Catatan_Reviewer&quot;}&#xA;    out_dtLog.Columns.Add(c, GetType(String))&#xA;Next&#xA;If Not System.IO.Directory.Exists(in_ProcessedFolder) Then System.IO.Directory.CreateDirectory(in_ProcessedFolder)">
+        <ui:InvokeCode.Arguments>
+<OutArgument x:TypeArguments="sd:DataTable" x:Key="out_dtLog">[dtLog]</OutArgument>
+<InArgument x:TypeArguments="x:String" x:Key="in_ProcessedFolder">[strProcessedFolder]</InArgument>
+        </ui:InvokeCode.Arguments>
+      </ui:InvokeCode>
+    </Sequence>
+
+    <Sequence DisplayName="2. Baca Master PO" sap2010:Annotation.AnnotationText="Membaca daftar Purchase Order resmi dari Excel sebagai acuan pencocokan.">
+      <ui:ReadRange AddHeaders="True" DataTable="[dtPO]" DisplayName="Baca sheet Master_PO" Range="" SheetName="Master_PO" WorkbookPath="[strPOFile]" Password="{x:Null}" />
+      <ui:LogMessage DisplayName="Log - Jumlah PO" Level="Info">
+  <ui:LogMessage.Message><InArgument x:TypeArguments="x:Object">["Master PO terbaca: " &amp; dtPO.Rows.Count.ToString() &amp; " PO"]</InArgument></ui:LogMessage.Message>
+</ui:LogMessage>
+    </Sequence>
+
+    <ForEach x:TypeArguments="x:String" DisplayName="3. Proses setiap invoice PDF" Values="[System.IO.Directory.GetFiles(strInvoiceFolder, &quot;*.pdf&quot;).OrderBy(Function(f) f).ToArray()]" sap2010:Annotation.AnnotationText="Setiap file PDF di folder Invoice_Masuk diproses satu per satu.">
+      <ActivityAction x:TypeArguments="x:String">
+        <ActivityAction.Argument>
+          <DelegateInArgument x:TypeArguments="x:String" Name="filePath" />
+        </ActivityAction.Argument>
+        <TryCatch DisplayName="Proses satu invoice (dengan penanganan error)">
+          <TryCatch.Try>
+            <Sequence DisplayName="Proses invoice">
+              <ui:LogMessage DisplayName="Log - File diproses" Level="Info">
+  <ui:LogMessage.Message><InArgument x:TypeArguments="x:Object">["Memproses: " &amp; System.IO.Path.GetFileName(filePath)]</InArgument></ui:LogMessage.Message>
+</ui:LogMessage>
+              <ui:ReadPDFText DisplayName="3a. Baca teks invoice PDF" FileName="[filePath]" Range="All" Text="[strText]" Password="{x:Null}" />
+              <ui:InvokeCode DisplayName="3b. Ekstrak data &amp; cocokkan dengan Master PO" Language="VBNet" Code="Dim rx As System.Text.RegularExpressions.Regex&#xA;out_NoInvoice = System.Text.RegularExpressions.Regex.Match(in_Text, &quot;No\. Invoice\s*:\s*(\S+)&quot;).Groups(1).Value.Trim()&#xA;out_PO = System.Text.RegularExpressions.Regex.Match(in_Text, &quot;No\. PO\s*:\s*(\S+)&quot;).Groups(1).Value.Trim()&#xA;out_Vendor = &quot;&quot;&#xA;For Each line As String In in_Text.Split(New String() {vbCrLf, vbLf, vbCr}, StringSplitOptions.None)&#xA;    If line.Trim() &lt;&gt; &quot;&quot; Then&#xA;        out_Vendor = line.Trim()&#xA;        Exit For&#xA;    End If&#xA;Next&#xA;Dim strTotal As String = System.Text.RegularExpressions.Regex.Match(in_Text, &quot;TOTAL\s*Rp\s*([\d\.]+)&quot;).Groups(1).Value.Replace(&quot;.&quot;, &quot;&quot;)&#xA;out_TotalInvoice = If(strTotal = &quot;&quot;, 0D, Decimal.Parse(strTotal, System.Globalization.CultureInfo.InvariantCulture))&#xA;out_TotalPO = 0D&#xA;&#xA;Dim poRow As System.Data.DataRow = Nothing&#xA;For Each r As System.Data.DataRow In in_dtPO.Rows&#xA;    If r(&quot;PO_Number&quot;).ToString().Trim().Equals(out_PO, StringComparison.OrdinalIgnoreCase) Then&#xA;        poRow = r&#xA;        Exit For&#xA;    End If&#xA;Next&#xA;&#xA;Dim reasons As New System.Collections.Generic.List(Of String)&#xA;If out_NoInvoice = &quot;&quot; OrElse out_PO = &quot;&quot; OrElse out_TotalInvoice = 0D Then&#xA;    reasons.Add(&quot;Data invoice tidak lengkap / tidak terbaca&quot;)&#xA;End If&#xA;If io_SeenInvoices.Contains(out_NoInvoice) Then&#xA;    reasons.Add(&quot;Invoice duplikat (nomor sudah pernah diproses)&quot;)&#xA;End If&#xA;If poRow Is Nothing Then&#xA;    reasons.Add(&quot;No. PO tidak terdaftar di Master PO&quot;)&#xA;Else&#xA;    out_TotalPO = Decimal.Parse(Convert.ToDouble(poRow(&quot;Total_PO&quot;), System.Globalization.CultureInfo.InvariantCulture).ToString(System.Globalization.CultureInfo.InvariantCulture), System.Globalization.CultureInfo.InvariantCulture)&#xA;    If Not poRow(&quot;Vendor&quot;).ToString().Trim().Equals(out_Vendor, StringComparison.OrdinalIgnoreCase) Then&#xA;        reasons.Add(&quot;Nama vendor tidak sesuai PO (di PO: &quot; &amp; poRow(&quot;Vendor&quot;).ToString().Trim() &amp; &quot;)&quot;)&#xA;    End If&#xA;    If out_TotalInvoice &lt;&gt; out_TotalPO Then&#xA;        reasons.Add(&quot;Total invoice berbeda dari PO (selisih Rp &quot; &amp; (out_TotalInvoice - out_TotalPO).ToString(&quot;N0&quot;, New System.Globalization.CultureInfo(&quot;id-ID&quot;)) &amp; &quot;)&quot;)&#xA;    End If&#xA;End If&#xA;&#xA;If reasons.Count = 0 Then&#xA;    out_Status = &quot;Lolos&quot;&#xA;    out_Reason = &quot;Sesuai dengan PO&quot;&#xA;Else&#xA;    out_Status = &quot;Perlu Review&quot;&#xA;    out_Reason = String.Join(&quot;; &quot;, reasons)&#xA;End If&#xA;io_SeenInvoices.Add(out_NoInvoice)" sap2010:Annotation.AnnotationText="Mengambil No. Invoice, No. PO, vendor, dan total. Aturan: duplikat, PO tidak terdaftar, vendor beda, atau total beda -&gt; Perlu Review. Selain itu -&gt; Lolos.">
+                <ui:InvokeCode.Arguments>
+<InArgument x:TypeArguments="x:String" x:Key="in_Text">[strText]</InArgument>
+<InArgument x:TypeArguments="sd:DataTable" x:Key="in_dtPO">[dtPO]</InArgument>
+<InOutArgument x:TypeArguments="scg:List(x:String)" x:Key="io_SeenInvoices">[listSeenInvoices]</InOutArgument>
+<OutArgument x:TypeArguments="x:String" x:Key="out_NoInvoice">[strNoInvoice]</OutArgument>
+<OutArgument x:TypeArguments="x:String" x:Key="out_PO">[strPO]</OutArgument>
+<OutArgument x:TypeArguments="x:String" x:Key="out_Vendor">[strVendor]</OutArgument>
+<OutArgument x:TypeArguments="x:Decimal" x:Key="out_TotalInvoice">[decTotalInvoice]</OutArgument>
+<OutArgument x:TypeArguments="x:Decimal" x:Key="out_TotalPO">[decTotalPO]</OutArgument>
+<OutArgument x:TypeArguments="x:String" x:Key="out_Status">[strStatus]</OutArgument>
+<OutArgument x:TypeArguments="x:String" x:Key="out_Reason">[strReason]</OutArgument>
+                </ui:InvokeCode.Arguments>
+              </ui:InvokeCode>
+              <If Condition="[strStatus = &quot;Perlu Review&quot;]" DisplayName="3c. Perlu keputusan manusia?" sap2010:Annotation.AnnotationText="HUMAN IN THE LEAD: robot tidak memutuskan sendiri invoice bermasalah. Staf keuangan memilih Setujui / Tolak / Tunda dan memberi catatan.">
+                <If.Then>
+                  <Sequence DisplayName="Minta keputusan staf keuangan">
+                    <ui:InputDialog DisplayName="Dialog persetujuan staf" IsPassword="False" Title="InvoiceGuard - Perlu Persetujuan" Label="[&quot;Robot menemukan invoice yang perlu keputusan Anda:&quot; &amp; vbCrLf &amp; vbCrLf &amp; &quot;File        : &quot; &amp; System.IO.Path.GetFileName(filePath) &amp; vbCrLf &amp; &quot;No. Invoice : &quot; &amp; strNoInvoice &amp; vbCrLf &amp; &quot;No. PO      : &quot; &amp; strPO &amp; vbCrLf &amp; &quot;Vendor      : &quot; &amp; strVendor &amp; vbCrLf &amp; &quot;Total Inv.  : Rp &quot; &amp; decTotalInvoice.ToString(&quot;N0&quot;, New System.Globalization.CultureInfo(&quot;id-ID&quot;)) &amp; vbCrLf &amp; &quot;Total PO    : Rp &quot; &amp; decTotalPO.ToString(&quot;N0&quot;, New System.Globalization.CultureInfo(&quot;id-ID&quot;)) &amp; vbCrLf &amp; vbCrLf &amp; &quot;Alasan      : &quot; &amp; strReason &amp; vbCrLf &amp; vbCrLf &amp; &quot;Pilih keputusan:&quot;]" OptionsString="{x:Null}">
+                      <ui:InputDialog.Options>
+                        <InArgument x:TypeArguments="s:String[]">[New String() {&quot;Setujui&quot;, &quot;Tolak&quot;, &quot;Tunda&quot;}]</InArgument>
+                      </ui:InputDialog.Options>
+                      <ui:InputDialog.Result>
+                        <OutArgument x:TypeArguments="x:String">[strDecision]</OutArgument>
+                      </ui:InputDialog.Result>
+                    </ui:InputDialog>
+                    <ui:InputDialog DisplayName="Catatan reviewer" IsPassword="False" Title="InvoiceGuard - Catatan" Label="[&quot;Keputusan: &quot; &amp; strDecision &amp; vbCrLf &amp; &quot;Tulis catatan untuk invoice &quot; &amp; strNoInvoice &amp; &quot; (boleh dikosongkan):&quot;]" Options="{x:Null}" OptionsString="{x:Null}">
+                      <ui:InputDialog.Result>
+                        <OutArgument x:TypeArguments="x:String">[strNote]</OutArgument>
+                      </ui:InputDialog.Result>
+                    </ui:InputDialog>
+                    <ui:LogMessage DisplayName="Log - Keputusan manusia" Level="Info">
+  <ui:LogMessage.Message><InArgument x:TypeArguments="x:Object">["Keputusan manusia untuk " &amp; strNoInvoice &amp; ": " &amp; strDecision]</InArgument></ui:LogMessage.Message>
+</ui:LogMessage>
+                  </Sequence>
+                </If.Then>
+                <If.Else>
+                  <Sequence DisplayName="Lolos otomatis">
+                    <Assign DisplayName="Keputusan = otomatis">
+  <Assign.To><OutArgument x:TypeArguments="x:String">[strDecision]</OutArgument></Assign.To>
+  <Assign.Value><InArgument x:TypeArguments="x:String">["Otomatis disetujui"]</InArgument></Assign.Value>
+</Assign>
+                    <Assign DisplayName="Tanpa catatan">
+  <Assign.To><OutArgument x:TypeArguments="x:String">[strNote]</OutArgument></Assign.To>
+  <Assign.Value><InArgument x:TypeArguments="x:String">[""]</InArgument></Assign.Value>
+</Assign>
+                  </Sequence>
+                </If.Else>
+              </If>
+              <ui:AddDataRow DataRow="{x:Null}" DisplayName="3d. Catat hasil ke tabel laporan" ArrayRow="[New Object() {Now.ToString(&quot;yyyy-MM-dd HH:mm:ss&quot;), System.IO.Path.GetFileName(filePath), strNoInvoice, strPO, strVendor, decTotalInvoice.ToString(&quot;N0&quot;, New System.Globalization.CultureInfo(&quot;id-ID&quot;)), decTotalPO.ToString(&quot;N0&quot;, New System.Globalization.CultureInfo(&quot;id-ID&quot;)), (decTotalInvoice - decTotalPO).ToString(&quot;N0&quot;, New System.Globalization.CultureInfo(&quot;id-ID&quot;)), strStatus, strReason, strDecision, strNote}]" DataTable="[dtLog]" />
+              <ui:InvokeCode DisplayName="3e. Pindahkan PDF ke folder Sudah_Diproses" Language="VBNet" Code="Dim dest As String = System.IO.Path.Combine(in_ProcessedFolder, System.IO.Path.GetFileName(in_File))&#xA;System.IO.File.Move(in_File, dest, True)">
+                <ui:InvokeCode.Arguments>
+<InArgument x:TypeArguments="x:String" x:Key="in_File">[filePath]</InArgument>
+<InArgument x:TypeArguments="x:String" x:Key="in_ProcessedFolder">[strProcessedFolder]</InArgument>
+                </ui:InvokeCode.Arguments>
+              </ui:InvokeCode>
+            </Sequence>
+          </TryCatch.Try>
+          <TryCatch.Catches>
+            <Catch x:TypeArguments="s:Exception">
+              <ActivityAction x:TypeArguments="s:Exception">
+                <ActivityAction.Argument>
+                  <DelegateInArgument x:TypeArguments="s:Exception" Name="exception" />
+                </ActivityAction.Argument>
+                <Sequence DisplayName="Tangani error">
+                  <ui:LogMessage DisplayName="Log - Error" Level="Error">
+  <ui:LogMessage.Message><InArgument x:TypeArguments="x:Object">["Gagal memproses " &amp; System.IO.Path.GetFileName(filePath) &amp; ": " &amp; exception.Message]</InArgument></ui:LogMessage.Message>
+</ui:LogMessage>
+                  <ui:AddDataRow DataRow="{x:Null}" DisplayName="Catat error ke laporan" ArrayRow="[New Object() {Now.ToString(&quot;yyyy-MM-dd HH:mm:ss&quot;), System.IO.Path.GetFileName(filePath), &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;Error&quot;, exception.Message, &quot;Perlu dicek manual&quot;, &quot;&quot;}]" DataTable="[dtLog]" />
+                </Sequence>
+              </ActivityAction>
+            </Catch>
+          </TryCatch.Catches>
+        </TryCatch>
+      </ActivityAction>
+    </ForEach>
+
+    <Sequence DisplayName="4. Simpan laporan &amp; ringkasan" sap2010:Annotation.AnnotationText="Menulis laporan Excel dan menampilkan ringkasan beserta estimasi waktu yang dihemat.">
+      <ui:WriteRange AddHeaders="True" DataTable="[dtLog]" DisplayName="Tulis laporan ke Excel" SheetName="Hasil_Verifikasi" StartingCell="A1" WorkbookPath="[strReportFile]" />
+      <Assign DisplayName="Susun ringkasan">
+  <Assign.To><OutArgument x:TypeArguments="x:String">[strSummary]</OutArgument></Assign.To>
+  <Assign.Value><InArgument x:TypeArguments="x:String">["InvoiceGuard selesai memproses invoice." &amp; vbCrLf &amp; vbCrLf &amp; "Total invoice diproses   : " &amp; dtLog.Rows.Count.ToString() &amp; vbCrLf &amp; "Lolos otomatis           : " &amp; dtLog.Select("Status_Robot = 'Lolos'").Length.ToString() &amp; vbCrLf &amp; "Perlu review manusia     : " &amp; dtLog.Select("Status_Robot = 'Perlu Review'").Length.ToString() &amp; vbCrLf &amp; "   - Disetujui           : " &amp; dtLog.Select("Keputusan_Manusia = 'Setujui'").Length.ToString() &amp; vbCrLf &amp; "   - Ditolak             : " &amp; dtLog.Select("Keputusan_Manusia = 'Tolak'").Length.ToString() &amp; vbCrLf &amp; "   - Ditunda             : " &amp; dtLog.Select("Keputusan_Manusia = 'Tunda'").Length.ToString() &amp; vbCrLf &amp; "Error                    : " &amp; dtLog.Select("Status_Robot = 'Error'").Length.ToString() &amp; vbCrLf &amp; vbCrLf &amp; "Waktu kerja robot        : " &amp; CInt((Now - dtMulai).TotalSeconds).ToString() &amp; " detik" &amp; vbCrLf &amp; "Estimasi jika manual     : " &amp; (dtLog.Rows.Count * 5).ToString() &amp; " menit (5 menit/invoice)" &amp; vbCrLf &amp; vbCrLf &amp; "Laporan disimpan di:" &amp; vbCrLf &amp; strReportFile]</InArgument></Assign.Value>
+</Assign>
+      <ui:LogMessage DisplayName="Log - Ringkasan" Level="Info">
+  <ui:LogMessage.Message><InArgument x:TypeArguments="x:Object">[strSummary]</InArgument></ui:LogMessage.Message>
+</ui:LogMessage>
+      <ui:MessageBox Caption="InvoiceGuard - Ringkasan" ChosenButton="{x:Null}" DisplayName="Tampilkan ringkasan">
+        <ui:MessageBox.Text>
+          <InArgument x:TypeArguments="x:Object">[strSummary]</InArgument>
+        </ui:MessageBox.Text>
+      </ui:MessageBox>
+      <ui:LogMessage DisplayName="Log - Robot selesai" Level="Info">
+  <ui:LogMessage.Message><InArgument x:TypeArguments="x:Object">["InvoiceGuard selesai"]</InArgument></ui:LogMessage.Message>
+</ui:LogMessage>
+    </Sequence>
+  </Sequence>
+</Activity>
